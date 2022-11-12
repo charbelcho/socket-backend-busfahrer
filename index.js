@@ -180,7 +180,9 @@ io.on("connection", socket => {
     const currentUser = (element) => element.username === data.username
     i = rooms.findIndex(currentRoomId)
     const werbinich = {
-      text: data.werbinich
+      id: 0,
+      text: data.werbinich,
+      info: ""
     }
     if (i !== undefined) {
       j = rooms[i].users.findIndex(currentUser)
@@ -443,3 +445,5 @@ server.listen(PORT, () => {
   console.log('Server listening on port ' + PORT)
   loadWerbinich()
 })
+
+//to start on produciton -> heroku run npm start
