@@ -18,12 +18,12 @@ app.get('/', (req, res) => {
 
 //Todo:
 connections = []
-
 var rooms = []
 var roomsBusfahrer = []
 var randomDeck = []
 let allWerbinich = []
 let usedWerbinich = []
+
 io.on("connection", socket => {
   connections.push(socket)
   console.log('Client connected')
@@ -225,7 +225,7 @@ io.on("connection", socket => {
       var result = roomsBusfahrer[i].users[j].karten.map((e, index) => roomsBusfahrer[i].deck[e].value === roomsBusfahrer[i].deck[data.index].value ? index : '').filter(Number.isInteger)
       if (result.length > 0) {
         for (let k = 0; k < result.length; k++) {
-          roomsBusfahrer[i].users[j].flipArray[result] = true
+          roomsBusfahrer[i].users[j].flipArray[result[k]] = false
         }
       }
     }
@@ -233,18 +233,13 @@ io.on("connection", socket => {
   })
 
   socket.on("busfahren", (data) => {
-    console.log(data)
     var i = undefined
     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
     i = roomsBusfahrer.findIndex(currentRoomId)
-    // var dataBusfahrer = {
-    //   roomBusfahrer: {},
-    //   username: ""
-    // }
     var username = ""
     var cardsLeft = []
     for (let j = 0; j < roomsBusfahrer[i].users.length; j++) {
-      var result = roomsBusfahrer[i].users[j].flipArray.filter((e) => e === false).length
+      var result = roomsBusfahrer[i].users[j].flipArray.filter((e) => e === true).length
       cardsLeft.push(result)
     }
     var maxValue = Math.max(...cardsLeft)
@@ -317,12 +312,10 @@ io.on("connection", socket => {
   })
 
   socket.on("NodeJS Server Port", (data) => {
-    console.log(data)
     io.sockets.emit('iOS Client Port', {msg: "Hi iOS Client"})
   })
 
   socket.on("sendMessage", (data) => {
-    console.log(data)
     io.sockets.emit('message', {msg: data})
   })
 
