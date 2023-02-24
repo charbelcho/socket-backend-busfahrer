@@ -26,13 +26,51 @@ let usedWerbinich = []
 
 io.on("connection", socket => {
   connections.push(socket)
-  console.log('Client connected')
+  console.log('Client connected ' +  socket.id)
   console.log('Connect: %s sockets are connected', connections.length)
   socket.emit('deineId', socket.id)
-  // io.sockets.emit("deineId", socket.id)
+  socket.emit('connected')
+  socket.on("usernameWerbinIch", (data) => {
+    socket.emit("werbinIchUsername", data)
+  })
+
+  socket.on("chat", (data) => {
+    console.log('======CHAT message==========');
+    console.log(data);
+    //socket.emit('CHAT',data);
+  });
+
+
+  socket.on("usernameBusfahrer", (data) => {
+    if ('roomId' in data) {
+      var i = undefined
+      var j = undefined
+      const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
+      const currentUser = (element) => element.username === data.usernameBusfahrerOld
+      i = roomsBusfahrer.findIndex(currentRoomId)
+      if (roomsBusfahrer[i].users.length > 0) {
+        j = roomsBusfahrer[i].users.findIndex(currentUser)
+        if (j !== undefined) {
+          roomsBusfahrer[i].users[j].username = data.usernameBusfahrerNew
+          socket.emit("busfahrerUsername", roomsBusfahrer[i].users[j].username)
+          io.to(data.roomId).emit("roomBusfahrer", roomsBusfahrer[i])
+        }
+      }
+    }
+    else {
+      socket.emit("busfahrerUsername", data.usernameBusfahrer)
+    }
+  })
+
   socket.on("createRoom", (data) => {
+    var roomId = ""
+    const currentRoomId = (element) => element.roomId.valueOf() === roomId.valueOf()
+    do {
+      roomId = randomGenerator(5)
+    } while (roomsBusfahrer.findIndex(currentRoomId) != -1)
+
     const room = {
-      "roomId": data.roomId,
+      "roomId": roomId,
       "users": []
     }
     const user = {
@@ -41,19 +79,25 @@ io.on("connection", socket => {
       "werbinich": {id: -1, text: "", info:""}
     }
     var i = undefined
-    if (data.roomId !== undefined) {
-      const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
+    if (roomId !== undefined) {
+      //const currentRoomId = (element) => element.roomId.valueOf() === roomId.valueOf()
       rooms.push(room)
       i = rooms.findIndex(currentRoomId)
       rooms[i].users.push(user)
-      socket.join(data.roomId)
-      io.to(data.roomId).emit("room", rooms[i])
+      socket.join(roomId)
+      io.to(roomId).emit("room", rooms[i])
     }
   })
 
   socket.on("createRoomBusfahrer", (data) => {
+    var roomId = ""
+    const currentRoomId = (element) => element.roomId.valueOf() === roomId.valueOf()
+    do {
+      roomId = randomGenerator(5)
+    } while (roomsBusfahrer.findIndex(currentRoomId) != -1)
+
     const roomBusfahrer = {
-      roomId: data.roomId,
+      roomId: roomId,
       deck: [],
       users: [],
       phase: 0
@@ -66,14 +110,14 @@ io.on("connection", socket => {
     }
 
     var i = undefined
-    if (data.roomId !== undefined) {
-      const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
+    if (roomId !== undefined) {
+      //const currentRoomId = (element) => element.roomId.valueOf() === roomId.valueOf()
       roomsBusfahrer.push(roomBusfahrer)
       i = roomsBusfahrer.findIndex(currentRoomId)
       roomsBusfahrer[i].users.push(user)
       roomsBusfahrer[i].phase = 1
-      socket.join(data.roomId)
-      io.to(data.roomId).emit("roomBusfahrer", roomsBusfahrer[i])
+      socket.join(roomId)
+      io.to(roomId).emit("roomBusfahrer", roomsBusfahrer[i])
     }
   })
 
@@ -212,6 +256,7 @@ io.on("connection", socket => {
           roomsBusfahrer[i].users[j].karten.push(j * 3 + k + 15)
         }
       }
+      
       io.to(roomsBusfahrer[i].users[j].id).emit("meineKarten", roomsBusfahrer[i].users[j].karten)
     }
     io.to(data.roomId).emit("roomBusfahrer", roomsBusfahrer[i])
@@ -311,39 +356,83 @@ io.on("connection", socket => {
     io.to(data.roomId).emit("leftBusfahrer", data)
   })
 
-  socket.on("NodeJS Server Port", (data) => {
-    io.sockets.emit('iOS Client Port', {msg: "Hi iOS Client"})
-  })
-
-  socket.on("sendMessage", (data) => {
-    io.sockets.emit('message', {msg: data})
-  })
-
   socket.on("disconnect", () => {
-    // let data = isItemInArray(rooms, socket.id)
-    // var i = undefined
+    let data = isItemInArray(rooms, socket.id)
+    let dataBusfahrer = isItemInArray(busfahrer, socket.id)
+    var i = undefined
+    var j = undefined
 
-    // if (rooms.length > 0 && data !== undefined) {
-    //   if (data.roomId !== undefined) {
-    //     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
-    //     i = rooms.findIndex(currentRoomId)
-    //   }
-    // }
+    if (rooms.length > 0 && data !== undefined) {
+      if (data.roomId !== undefined) {
+        const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
+        i = rooms.findIndex(currentRoomId)
+      }
+    }
 
-    // if (i !== undefined && i >= 0) {
-    //   rooms[i].users = rooms[i].users.filter(user => user.id !== socket.id)
-    //   if (rooms[i].users.length === 0) {
-    //     rooms = rooms.filter(room => room.roomId !== rooms[i].roomId)
-    //   }
-    // }
-    // socket.leave(data.roomId)
-    // io.to(data.roomId).emit("room", rooms[i])
-    console.log('Client disconnected')
+    if (roomsBusfahrer.length > 0 && data !== undefined) {
+      if (dataBusfahrer.roomId !== undefined) {
+        const currentRoomId = (element) => element.roomId.valueOf() === dataBusfahrer.roomId.valueOf()
+        j = roomsBusfahrer.findIndex(currentRoomId)
+      }
+    }
+
+    if (i !== undefined && i >= 0) {
+      rooms[i].users = rooms[i].users.filter(user => user.id !== socket.id)
+      if (rooms[i].users.length === 0) {
+        rooms = rooms.filter(room => room.roomId !== rooms[i].roomId)
+      }
+    }
+
+    if (i !== undefined && i >= 0) {
+      rooms[i].users = rooms[i].users.filter(user => user.id !== socket.id)
+      if (rooms[i].users.length === 0) {
+        rooms = rooms.filter(room => room.roomId !== rooms[i].roomId)
+      }
+    }
+
+    if (j !== undefined && j >= 0) {
+      roomsBusfahrer[j].users = roomsBusfahrer[j].users.filter(user => user.id !== socket.id)
+      if (roomsBusfahrer[j].users.length === 0) {
+        roomsBusfahrer = roomsBusfahrer.filter(room => room.roomId !== rooms[j].roomId)
+      }
+    }
+
+    if (i !== undefined) {
+      socket.leave(data.roomId)
+      io.to(data.roomId).emit("room", rooms[i])
+    }
+
+    if (j !== undefined) {
+      socket.leave(dataBusfahrer.roomId)
+      io.to(dataBusfahrer.roomId).emit("roomBusfahrer", roomsBusfahrer[i])
+    }
+    
+    console.log('Client disconnected '+ socket.id)
     connections.splice(connections.indexOf(socket), 1)
     console.log('Disconnet: %s sockets are connected', connections.length)
 
   })
 })
+
+const randomGenerator = (length) => {
+  var result           = ''
+  var characters       = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz123456789'
+  var charactersLength = characters.length
+  for ( var i = 0; i < length; i++ ) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength))
+  }
+  return result
+}
+
+const randomGeneratorTest = (length) => {
+  var result           = ''
+  var characters       = 'AB'
+  var charactersLength = characters.length
+  for ( var i = 0; i < length; i++ ) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength))
+  }
+  return result
+}
 
 const loadWerbinich = () => {
   axios.get(`https://trinkspielplatz.herokuapp.com/trinkspiele/werbinich/`)
