@@ -4,8 +4,15 @@ const cors = require('cors');
 const io = require('socket.io')(server)
 const console = require('console')
 const axios = require('axios')
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 8001;
 const INDEX = '/index.html';
+
+//const app2 = require('express')()
+// const server2 = require('http').createServer(app)
+//const cors2 = require('cors');
+// const io2 = require('socket.io')(server)
+// const PORT2 = process.env.PORT || 8001;
+//const INDEX2 = '/index.html';
 
 
 
@@ -358,7 +365,7 @@ io.on("connection", socket => {
 
   socket.on("disconnect", () => {
     let data = isItemInArray(rooms, socket.id)
-    let dataBusfahrer = isItemInArray(busfahrer, socket.id)
+    let dataBusfahrer = isItemInArray(roomsBusfahrer, socket.id)
     var i = undefined
     var j = undefined
 
@@ -383,17 +390,10 @@ io.on("connection", socket => {
       }
     }
 
-    if (i !== undefined && i >= 0) {
-      rooms[i].users = rooms[i].users.filter(user => user.id !== socket.id)
-      if (rooms[i].users.length === 0) {
-        rooms = rooms.filter(room => room.roomId !== rooms[i].roomId)
-      }
-    }
-
     if (j !== undefined && j >= 0) {
       roomsBusfahrer[j].users = roomsBusfahrer[j].users.filter(user => user.id !== socket.id)
       if (roomsBusfahrer[j].users.length === 0) {
-        roomsBusfahrer = roomsBusfahrer.filter(room => room.roomId !== rooms[j].roomId)
+        roomsBusfahrer = roomsBusfahrer.filter(room => room.roomId !== roomsBusfahrer[j].roomId)
       }
     }
 
