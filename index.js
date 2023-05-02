@@ -41,10 +41,8 @@ io.on("connection", socket => {
     socket.emit("werbinIchUsername", data)
   })
 
-  socket.on("chat", (data) => {
-    console.log('======CHAT message==========');
-    console.log(data);
-    //socket.emit('CHAT',data);
+  socket.on("emitText", (data) => {
+    socket.emit('receiveText', data.text);
   });
 
 
@@ -194,7 +192,7 @@ io.on("connection", socket => {
         roomsBusfahrer[i].users.push(user)
         roomsBusfahrer[i].phase = 1
         socket.join(data.roomId)
-        io.to(socket.id).emit('closeModalBusfahrer')
+        //io.to(socket.id).emit('closeModalBusfahrer')
         io.to(data.roomId).emit("roomBusfahrer", roomsBusfahrer[i])
       }
     }
@@ -249,6 +247,7 @@ io.on("connection", socket => {
   })
 
   socket.on('austeilen', (data) => {
+    socket.broadcast.to(data.roomId).emit('loading');
     var i = undefined
     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
     i = roomsBusfahrer.findIndex(currentRoomId)
