@@ -349,7 +349,7 @@ io.on("connection", socket => {
     var i = undefined
     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
     i = roomsBusfahrer.findIndex(currentRoomId)
-    roomsBusfahrer[i] = data
+    roomsBusfahrer[i].users = roomsBusfahrer[i].users.filter(user => user.id !== data.userId)
     socket.leave(data.roomId)
     io.to(data.roomId).emit("roomBusfahrer", roomsBusfahrer[i])
   })
