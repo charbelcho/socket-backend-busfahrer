@@ -7,14 +7,6 @@ const axios = require('axios')
 const PORT = process.env.PORT || 8001;
 const INDEX = '/index.html';
 
-//const app2 = require('express')()
-// const server2 = require('http').createServer(app)
-//const cors2 = require('cors');
-// const io2 = require('socket.io')(server)
-// const PORT2 = process.env.PORT || 8001;
-//const INDEX2 = '/index.html';
-
-
 
 app.use(cors())
 app.get('/', (req, res) => {
@@ -33,18 +25,13 @@ let usedWerbinich = []
 
 io.on("connection", socket => {
   connections.push(socket)
-  console.log('Client connected ' +  socket.id)
+  console.log('Client connected')
   console.log('Connect: %s sockets are connected', connections.length)
   socket.emit('deineId', socket.id)
   socket.emit('connected')
   socket.on("usernameWerbinIch", (data) => {
     socket.emit("werbinIchUsername", data)
   })
-
-  socket.on("emitText", (data) => {
-    socket.emit('receiveText', data.text);
-  });
-
 
   socket.on("usernameBusfahrer", (data) => {
     if ('roomId' in data) {
@@ -192,7 +179,6 @@ io.on("connection", socket => {
         roomsBusfahrer[i].users.push(user)
         roomsBusfahrer[i].phase = 1
         socket.join(data.roomId)
-        //io.to(socket.id).emit('closeModalBusfahrer')
         io.to(data.roomId).emit("roomBusfahrer", roomsBusfahrer[i])
       }
     }
