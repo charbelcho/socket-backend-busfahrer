@@ -34,24 +34,25 @@ io.on("connection", socket => {
   })
 
   socket.on("usernameBusfahrer", (data) => {
-    if ('roomId' in data) {
+    /*if ('roomId' in data) {
       var i = undefined
       var j = undefined
       const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
-      const currentUser = (element) => element.username === data.usernameBusfahrerOld
+      const currentUser = (element) => element.name === data.nameBusfahrerOld
       i = roomsBusfahrer.findIndex(currentRoomId)
-      if (roomsBusfahrer[i].users.length > 0) {
-        j = roomsBusfahrer[i].users.findIndex(currentUser)
+      if (roomsBusfahrer[i].spieler.length > 0) {
+        j = roomsBusfahrer[i].spieler.findIndex(currentUser)
         if (j !== undefined) {
-          roomsBusfahrer[i].users[j].username = data.usernameBusfahrerNew
-          socket.emit("busfahrerUsername", roomsBusfahrer[i].users[j].username)
+          roomsBusfahrer[i].spieler[j].name = data.nameBusfahrerNew
+          socket.emit("busfahrerUsername", roomsBusfahrer[i].spieler[j].name)
           io.to(data.roomId).emit("roomBusfahrer", roomsBusfahrer[i])
         }
       }
     }
     else {
-      socket.emit("busfahrerUsername", data.usernameBusfahrer)
-    }
+      socket.emit("busfahrerUsername", data.nameBusfahrer)
+    }*/
+    socket.emit("busfahrerUsername", data)
   })
 
   socket.on("createRoom", (data) => {
@@ -59,15 +60,15 @@ io.on("connection", socket => {
     const currentRoomId = (element) => element.roomId.valueOf() === roomId.valueOf()
     do {
       roomId = randomGenerator(5)
-    } while (roomsBusfahrer.findIndex(currentRoomId) != -1)
+    } while (rooms.findIndex(currentRoomId) != -1)
 
     const room = {
       "roomId": roomId,
-      "users": []
+      "spieler": []
     }
     const user = {
       "id": socket.id,
-      "username": data.username,
+      "username": data.name,
       "werbinich": {id: -1, text: "", info:""}
     }
     var i = undefined
@@ -75,7 +76,7 @@ io.on("connection", socket => {
       //const currentRoomId = (element) => element.roomId.valueOf() === roomId.valueOf()
       rooms.push(room)
       i = rooms.findIndex(currentRoomId)
-      rooms[i].users.push(user)
+      rooms[i].spieler.push(user)
       socket.join(roomId)
       io.to(roomId).emit("room", rooms[i])
     }
@@ -91,12 +92,12 @@ io.on("connection", socket => {
     const roomBusfahrer = {
       roomId: roomId,
       deck: [],
-      users: [],
+      spieler: [],
       phase: 0
     }
-    const user = {
+    const einSpieler = {
       id: socket.id,
-      username: data.username,
+      name: data,
       karten: [],
       flipArray: [false, false, false]
     }
@@ -106,7 +107,7 @@ io.on("connection", socket => {
       //const currentRoomId = (element) => element.roomId.valueOf() === roomId.valueOf()
       roomsBusfahrer.push(roomBusfahrer)
       i = roomsBusfahrer.findIndex(currentRoomId)
-      roomsBusfahrer[i].users.push(user)
+      roomsBusfahrer[i].spieler.push(einSpieler)
       roomsBusfahrer[i].phase = 1
       socket.join(roomId)
       io.to(roomId).emit("roomBusfahrer", roomsBusfahrer[i])
@@ -116,31 +117,31 @@ io.on("connection", socket => {
   socket.on('joinRoom', (data) => {
     const user = {
       id: socket.id,
-      username: data.username,
+      username: data.name,
       werbinich: {id: -1, text: "", info:""}
     }
 
     var i = undefined
     var j = undefined
     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
-    const currentUser = (element) => element.username === data.username
+    const currentUser = (element) => element.name === data.name
     i = rooms.findIndex(currentRoomId)
 
     if (i === -1) {
       socket.emit('keinRaumGefunden')
     }
     else {
-      if (rooms[i].users.length > 0) {
-        j = rooms[i].users.findIndex(currentUser)
+      if (rooms[i].spieler.length > 0) {
+        j = rooms[i].spieler.findIndex(currentUser)
       }
-      if (rooms[i].users.length === 10) {
+      if (rooms[i].spieler.length === 10) {
         socket.emit('roomFull')
       }
       if (j !== -1) {
         socket.emit('nameBesetzt')
       }
       else {
-        rooms[i].users.push(user)
+        rooms[i].spieler.push(user)
         socket.join(data.roomId)
         socket.emit('closeModal')
         io.to(data.roomId).emit("room", rooms[i])
@@ -151,7 +152,7 @@ io.on("connection", socket => {
   socket.on('joinRoomBusfahrer', (data) => {
     const user = {
       id: socket.id,
-      username: data.username,
+      name: data.name,
       karten: [],
       flipArray: [false, false, false]
     }
@@ -159,26 +160,33 @@ io.on("connection", socket => {
     var i = undefined
     var j = undefined
     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
-    const currentUser = (element) => element.username === data.username
+    const currentUser = (element) => element.name === data.name
     i = roomsBusfahrer.findIndex(currentRoomId)
 
     if (i === -1) {
       io.to(socket.id).emit('keinRaumGefundenBusfahrer')
     }
     else {
-      if (roomsBusfahrer[i].users.length > 0) {
-        j = roomsBusfahrer[i].users.findIndex(currentUser)
+      if (roomsBusfahrer[i].spieler.length > 0) {
+        j = roomsBusfahrer[i].spieler.findIndex(currentUser)
       }
-      if (roomsBusfahrer[i].users.length === 10) {
+      if (roomsBusfahrer[i].spieler.length === 10) {
         io.to(socket.id).emit('roomFullBusfahrer')
+        return
       }
       if (j !== -1) {
         io.to(socket.id).emit('nameBesetztBusfahrer')
+        return
+      }
+      if (roomsBusfahrer[i].phase > 1) {
+        io.to(socket.id).emit('spielLaeuft')
+        return
       }
       else {
-        roomsBusfahrer[i].users.push(user)
+        roomsBusfahrer[i].spieler.push(user)
         roomsBusfahrer[i].phase = 1
         socket.join(data.roomId)
+        io.to(socket.id).emit('closeModal')
         io.to(data.roomId).emit("roomBusfahrer", roomsBusfahrer[i])
       }
     }
@@ -193,8 +201,8 @@ io.on("connection", socket => {
     if (usedWerbinich.length >= allWerbinich.length - 10) {
       usedWerbinich = []
     }
-    for (let j = 0; j < rooms[i].users.length; j++) {
-      rooms[i].users[j].werbinich = allWerbinich[j]
+    for (let j = 0; j < rooms[i].spieler.length; j++) {
+      rooms[i].spieler[j].werbinich = allWerbinich[j]
       usedWerbinich.push(allWerbinich[j])
     }
     io.to(data.roomId).emit("room", rooms[i])
@@ -206,9 +214,9 @@ io.on("connection", socket => {
     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
     let speicherNamenFuer = []
     i = rooms.findIndex(currentRoomId)
-    checker(rooms[i].users, speicherNamenFuer)
-    for (let j = 0; j < rooms[i].users.length; j++) {
-      io.to(rooms[i].users[j].id).emit("speicherNamenFuer", speicherNamenFuer[j])
+    checker(rooms[i].spieler, speicherNamenFuer)
+    for (let j = 0; j < rooms[i].spieler.length; j++) {
+      io.to(rooms[i].spieler[j].id).emit("speicherNamenFuer", speicherNamenFuer[j])
     }
   })
 
@@ -216,7 +224,7 @@ io.on("connection", socket => {
     var i = undefined
     var j = undefined
     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
-    const currentUser = (element) => element.username === data.username
+    const currentUser = (element) => element.name === data.name
     i = rooms.findIndex(currentRoomId)
     const werbinich = {
       id: 0,
@@ -224,10 +232,10 @@ io.on("connection", socket => {
       info: ""
     }
     if (i !== undefined) {
-      j = rooms[i].users.findIndex(currentUser)
+      j = rooms[i].spieler.findIndex(currentUser)
     }
     if (j > -1) {
-      rooms[i].users[j].werbinich = werbinich
+      rooms[i].spieler[j].werbinich = werbinich
     }
     io.to(data.roomId).emit("room", rooms[i])
   })
@@ -240,16 +248,16 @@ io.on("connection", socket => {
     roomsBusfahrer[i].roomId = data.roomId
     roomsBusfahrer[i].deck = JSON.parse(data.deck)
     roomsBusfahrer[i].phase = 2
-    roomsBusfahrer[i].users.map(e => e.karten = [])
-    roomsBusfahrer[i].users.map(e => e.flipArray = [true, true, true]) 
-    for (let j = 0; j < roomsBusfahrer[i].users.length; j++) {
-      if (roomsBusfahrer[i].users[j].karten.length < 3) {
+    roomsBusfahrer[i].spieler.map(e => e.karten = [])
+    roomsBusfahrer[i].spieler.map(e => e.flipArray = [true, true, true]) 
+    for (let j = 0; j < roomsBusfahrer[i].spieler.length; j++) {
+      if (roomsBusfahrer[i].spieler[j].karten.length < 3) {
         for (let k = 0; k < 3; k++) {
-          roomsBusfahrer[i].users[j].karten.push(j * 3 + k + 15)
+          roomsBusfahrer[i].spieler[j].karten.push(j * 3 + k + 15)
         }
       }
       
-      io.to(roomsBusfahrer[i].users[j].id).emit("meineKarten", roomsBusfahrer[i].users[j].karten)
+      io.to(roomsBusfahrer[i].spieler[j].id).emit("meineKarten", roomsBusfahrer[i].spieler[j].karten)
     }
     io.to(data.roomId).emit("roomBusfahrer", roomsBusfahrer[i])
   })
@@ -258,14 +266,14 @@ io.on("connection", socket => {
     var i = undefined
     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
     i = roomsBusfahrer.findIndex(currentRoomId)
-    for (let j = 0; j < roomsBusfahrer[i].users.length; j++) {
-      var result = roomsBusfahrer[i].users[j].karten.map((e, index) => roomsBusfahrer[i].deck[e].value === roomsBusfahrer[i].deck[data.index].value ? index : '').filter(Number.isInteger)
+    /*for (let j = 0; j < roomsBusfahrer[i].spieler.length; j++) {
+      var result = roomsBusfahrer[i].spieler[j].karten.map((e, index) => roomsBusfahrer[i].deck[e].value === roomsBusfahrer[i].deck[data.index].value ? index : '').filter(Number.isInteger)
       if (result.length > 0) {
         for (let k = 0; k < result.length; k++) {
-          roomsBusfahrer[i].users[j].flipArray[result[k]] = false
+          roomsBusfahrer[i].spieler[j].flipArray[result[k]] = false
         }
       }
-    }
+    }*/
     io.to(data.roomId).emit("gedrehteKarte", data)
   })
 
@@ -273,10 +281,10 @@ io.on("connection", socket => {
     var i = undefined
     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
     i = roomsBusfahrer.findIndex(currentRoomId)
-    var username = ""
+    var name = ""
     var cardsLeft = []
-    for (let j = 0; j < roomsBusfahrer[i].users.length; j++) {
-      var result = roomsBusfahrer[i].users[j].flipArray.filter((e) => e === true).length
+    for (let j = 0; j < roomsBusfahrer[i].spieler.length; j++) {
+      var result = roomsBusfahrer[i].spieler[j].flipArray.filter((e) => e === true).length
       cardsLeft.push(result)
     }
     var maxValue = Math.max(...cardsLeft)
@@ -289,37 +297,45 @@ io.on("connection", socket => {
       }
     }
     else {
-      username = roomsBusfahrer[i].users[Math.floor((Math.random() * roomsBusfahrer[i].users.length))].username
+      name = roomsBusfahrer[i].spieler[Math.floor((Math.random() * roomsBusfahrer[i].spieler.length))].name
     }
 
     if (maxValueIndexes.length === 1) {
-      username = roomsBusfahrer[i].users[maxValueIndexes[0]].username
+      name = roomsBusfahrer[i].spieler[maxValueIndexes[0]].name
     }
     else {
       var cardsLeftValue = []
       for (let l = 0; l < maxValueIndexes.length; l++) {
         var user = {
-          username: "",
+          name: "",
           cardsValue: 0
         }
-        user.username = roomsBusfahrer[i].users[maxValueIndexes[l]].username
+        user.name = roomsBusfahrer[i].spieler[maxValueIndexes[l]].name
         cardsLeftValue.push(user)
         for (let m = 0; m < 3; m++) {
-          if (roomsBusfahrer[i].users[maxValueIndexes[l]].flipArray[m] === false) {
-            cardsLeftValue[l].cardsValue = cardsLeftValue[l].cardsValue + roomsBusfahrer[i].deck[roomsBusfahrer[i].users[maxValueIndexes[l]].karten[m]].value
+          if (roomsBusfahrer[i].spieler[maxValueIndexes[l]].flipArray[m] === false) {
+            cardsLeftValue[l].cardsValue = cardsLeftValue[l].cardsValue + roomsBusfahrer[i].deck[roomsBusfahrer[i].spieler[maxValueIndexes[l]].karten[m]].value
           }
         }
       }
       var maxCardValue = Math.max(...cardsLeftValue.map(e => e.cardsValue))
       var busfahrer = cardsLeftValue.filter(e => e.cardsValue === maxCardValue)
       if (busfahrer.length === 1) {
-        username = busfahrer[0].username
+        name = busfahrer[0].name
       }
       else if (busfahrer.length > 1) {
-        username = busfahrer[Math.floor((Math.random() * busfahrer.length))].username
+        name = busfahrer[Math.floor((Math.random() * busfahrer.length))].name
       }
     }
-    io.to(data.roomId).emit("busfahrerBestimmen", username)
+    io.to(data.roomId).emit("busfahrerBestimmen", name)
+  })
+
+  socket.on("zumStart", (data) => {
+    var i = undefined
+    const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
+    i = roomsBusfahrer.findIndex(currentRoomId)
+    roomsBusfahrer[i].phase = 1
+    io.to(data.roomId).emit("roomBusfahrer", roomsBusfahrer[i])
   })
 
   socket.on("leave", (data) => {
@@ -335,9 +351,12 @@ io.on("connection", socket => {
     var i = undefined
     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
     i = roomsBusfahrer.findIndex(currentRoomId)
-    roomsBusfahrer[i].users = roomsBusfahrer[i].users.filter(user => user.id !== data.userId)
+    roomsBusfahrer[i].spieler = roomsBusfahrer[i].spieler.filter(user => user.id !== data.spielerId)
     socket.leave(data.roomId)
-    io.to(data.roomId).emit("roomBusfahrer", roomsBusfahrer[i])
+    for (index in roomsBusfahrer[i].spieler) {
+      io.to(roomsBusfahrer[i].spieler[index].id).emit("roomBusfahrerAfterLeave", roomsBusfahrer[i].spieler)
+    }
+    //io.to(data.roomId).emit("roomBusfahrer", roomsBusfahrer[i])
   })
 
   socket.on("left", (data) => {
@@ -369,15 +388,15 @@ io.on("connection", socket => {
     }
 
     if (i !== undefined && i >= 0) {
-      rooms[i].users = rooms[i].users.filter(user => user.id !== socket.id)
-      if (rooms[i].users.length === 0) {
+      rooms[i].spieler = rooms[i].spieler.filter(user => user.id !== socket.id)
+      if (rooms[i].spieler.length === 0) {
         rooms = rooms.filter(room => room.roomId !== rooms[i].roomId)
       }
     }
 
     if (j !== undefined && j >= 0) {
-      roomsBusfahrer[j].users = roomsBusfahrer[j].users.filter(user => user.id !== socket.id)
-      if (roomsBusfahrer[j].users.length === 0) {
+      roomsBusfahrer[j].spieler = roomsBusfahrer[j].spieler.filter(user => user.id !== socket.id)
+      if (roomsBusfahrer[j].spieler.length === 0) {
         roomsBusfahrer = roomsBusfahrer.filter(room => room.roomId !== roomsBusfahrer[j].roomId)
       }
     }
@@ -448,8 +467,8 @@ const isItemInArray = (array, item) => {
   }
   if (array.length > 0) {
     for (let i = 0; i < array.length; i++) {
-      for (let j = 0; j < array[i].users.length; j++) {
-        if (array[i].users[j].id.valueOf() === item.valueOf()) {
+      for (let j = 0; j < array[i].spieler.length; j++) {
+        if (array[i].spieler[j].id.valueOf() === item.valueOf()) {
           data.itemInArray = true
           data.roomId = array[i].roomId
           data.x = i
